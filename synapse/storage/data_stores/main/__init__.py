@@ -50,6 +50,8 @@ from .media_repository import MediaRepositoryStore
 from .metrics import ServerMetricsStore
 from .monthly_active_users import MonthlyActiveUsersStore
 from .openid import OpenIdStore
+from .invites import InviteStore
+#from .autoremove import AutoRemoveStore
 from .presence import PresenceStore, UserPresenceState
 from .profile import ProfileStore
 from .purge_events import PurgeEventsStore
@@ -105,6 +107,8 @@ class DataStore(
     AccountDataStore,
     EventPushActionsStore,
     OpenIdStore,
+    InviteStore,
+    #AutoRemoveStore,
     ClientIpStore,
     DeviceStore,
     DeviceInboxStore,

@@ -180,6 +180,29 @@ class RoomMemberWorkerStore(EventsWorkerStore):
         txn.execute(sql, (room_id, Membership.JOIN))
         return [r[0] for r in txn]
 
+    # TODO добавление связи пользователь-сообщение
+    def add_users_messages(self, users_ids, room_id, event_id):
+        return self.db.runInteraction(
+            "add_users_messages", self.add_users_messages_txn, users_ids, room_id, event_id
+        )
+
+    def add_users_messages_txn(self, txn, users_ids, room_id, event_id):
+
+        subquery = []
+        for user_id in users_ids:
+            subquery.append("('{0}','{1}','{2}')".format(event_id,user_id,room_id))
+        str_query = ','
+        str_query = str_query.join(subquery)
+        sql = """
+                        INSERT INTO users_messages
+                        (event_id,user_id,room_id) VALUES 
+                          %s                              
+                    """ % (
+                str_query,
+            )
+        return txn.execute(sql, (users_ids, room_id, event_id))
+
+
     @cached(max_entries=100000)
     def get_room_summary(self, room_id):
         """ Get the details of a room roughly suitable for use by the room

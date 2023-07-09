@@ -48,7 +48,31 @@ class ProfileWorkerStore(SQLBaseStore):
             retcol="displayname",
             desc="get_profile_displayname",
         )
+    
+    def get_profile_first_name(self, user_localpart):
+        return self.db.simple_select_one_onecol(
+            table="profiles",
+            keyvalues={"user_id": user_localpart},
+            retcol="first_name",
+            desc="get_profile_first_name",
+        )
+    
+    def get_profile_sur_name(self, user_localpart):
+        return self.db.simple_select_one_onecol(
+            table="profiles",
+            keyvalues={"user_id": user_localpart},
+            retcol="sur_name",
+            desc="get_profile_sur_name",
+        )
 
+    def get_profile_description(self, user_localpart):
+        return self.db.simple_select_one_onecol(
+            table="profiles",
+            keyvalues={"user_id": user_localpart},
+            retcol="description",
+            desc="get_profile_description",
+        )
+    
     def get_profile_avatar_url(self, user_localpart):
         return self.db.simple_select_one_onecol(
             table="profiles",
@@ -78,6 +102,30 @@ class ProfileWorkerStore(SQLBaseStore):
             updatevalues={"displayname": new_displayname},
             desc="set_profile_displayname",
         )
+    
+    def set_profile_first_name(self, user_localpart, first_name):
+        return self.db.simple_update_one(
+            table="profiles",
+            keyvalues={"user_id": user_localpart},
+            updatevalues={"first_name": first_name},
+            desc="set_profile_first_name",
+        )
+
+    def set_profile_sur_name(self, user_localpart,sur_name):
+        return self.db.simple_update_one(
+            table="profiles",
+            keyvalues={"user_id": user_localpart},
+            updatevalues={"sur_name": sur_name},
+            desc="set_profile_sur_name",
+        )
+    
+    def set_profile_description(self, user_localpart,description):
+        return self.db.simple_update_one(
+            table="profiles",
+            keyvalues={"user_id": user_localpart},
+            updatevalues={"description": description},
+            desc="set_profile_description",
+        )
 
     def set_profile_avatar_url(self, user_localpart, new_avatar_url):
         return self.db.simple_update_one(
@@ -86,6 +134,20 @@ class ProfileWorkerStore(SQLBaseStore):
             updatevalues={"avatar_url": new_avatar_url},
             desc="set_profile_avatar_url",
         )
+    
+    # TODO добавление уведомления
+    def add_notification(self, users_id, action,creation_ts):
+        return self.db.runInteraction(
+            "add_notification", self.add_notification_txn, users_id, action, creation_ts
+        )
+
+    def add_notification_txn(self, txn, users_id, action, creation_ts):
+
+        sql = """
+                        INSERT INTO notifications
+                        (user_id,action,creation_ts) VALUES (?,?,?)
+                    """
+        return txn.execute(sql, (users_id, action, creation_ts)) 
 
 
 class ProfileStore(ProfileWorkerStore):
@@ -110,7 +172,7 @@ class ProfileStore(ProfileWorkerStore):
         return self.db.simple_update(
             table="remote_profile_cache",
             keyvalues={"user_id": user_id},
-            updatevalues={
+            values={
                 "displayname": displayname,
                 "avatar_url": avatar_url,
                 "last_check": self._clock.time_msec(),

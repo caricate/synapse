@@ -519,6 +519,21 @@ class SearchStore(SearchBackgroundUpdateStore):
             args.extend([origin_server_ts, origin_server_ts, stream])
 
         if isinstance(self.database_engine, PostgresEngine):
+            '''if search_query == "":
+                sql = (
+                    "SELECT 1 as rank,"
+                    " origin_server_ts, stream_ordering, room_id, event_id"
+                    " FROM event_search"
+                    " WHERE TRUE AND "
+                )
+            else:
+                sql = (
+                    "SELECT ts_rank_cd(vector, to_tsquery('english', ?)) as rank,"
+                    " origin_server_ts, stream_ordering, room_id, event_id"
+                    " FROM event_search"
+                    " WHERE vector @@ to_tsquery('english', ?) AND "
+                )
+                args = [search_query, search_query] + args'''
             sql = (
                 "SELECT ts_rank_cd(vector, to_tsquery('english', ?)) as rank,"
                 " origin_server_ts, stream_ordering, room_id, event_id"

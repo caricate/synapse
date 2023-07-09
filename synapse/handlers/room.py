@@ -593,16 +593,22 @@ class RoomCreationHandler(BaseHandler):
                 Codes.UNSUPPORTED_ROOM_VERSION,
             )
 
-        if "room_alias_name" in config:
-            for wchar in string.whitespace:
-                if wchar in config["room_alias_name"]:
-                    raise SynapseError(400, "Invalid characters in room alias")
+#        if "room_alias_name" in config:
+#            for wchar in string.whitespace:
+#                if wchar in config["room_alias_name"]:
+#                    raise SynapseError(400, "Invalid characters in room alias")
+        if "name" in config:
+            # for wchar in string.whitespace:
+            #     if wchar in config["room_alias"]:
+            #         raise SynapseError(400, "Invalid characters in room alias")
 
-            room_alias = RoomAlias(config["room_alias_name"], self.hs.hostname)
+            #room_alias = RoomAlias(config["room_alias_name"], self.hs.hostname)
+            room_alias = RoomAlias(config["name"], self.hs.hostname)
             mapping = await self.store.get_association_from_room_alias(room_alias)
 
             if mapping:
-                raise SynapseError(400, "Room alias already taken", Codes.ROOM_IN_USE)
+                #raise SynapseError(400, "Room alias already taken", Codes.ROOM_IN_USE)
+                raise SynapseError(400, "Room name already taken", Codes.ROOM_IN_USE)
         else:
             room_alias = None
 

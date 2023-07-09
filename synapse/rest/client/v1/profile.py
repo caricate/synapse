@@ -42,10 +42,19 @@ class ProfileDisplaynameRestServlet(RestServlet):
         await self.profile_handler.check_profile_query_allowed(user, requester_user)
 
         displayname = await self.profile_handler.get_displayname(user)
+        first_name = await self.profile_handler.get_first_name(user)
+        sur_name = await self.profile_handler.get_sur_name(user)
+        description = await self.profile_handler.get_description(user)
 
         ret = {}
         if displayname is not None:
             ret["displayname"] = displayname
+        if first_name is not None:
+            ret["first_name"] = first_name
+        if sur_name is not None:
+            ret["sur_name"] = sur_name
+        if description is not None:
+            ret["description"] = description
 
         return 200, ret
 
@@ -61,8 +70,24 @@ class ProfileDisplaynameRestServlet(RestServlet):
         except Exception:
             return 400, "Unable to parse name"
 
-        await self.profile_handler.set_displayname(user, requester, new_name, is_admin)
+        #await self.profile_handler.set_displayname(user, requester, new_name, is_admin)
+        if "first_name" not in content:
+            first_name = ""
+        else: first_name = content["first_name"]
 
+        if "sur_name" not in content:
+            sur_name = ""
+        else: sur_name = content["sur_name"]
+
+        if "description" not in content:
+            description = ""
+        else:
+            description = content["description"]
+
+        await self.profile_handler.set_displayname(user, requester, new_name,is_admin)
+        await self.profile_handler.set_first_name(user, requester, first_name, is_admin)
+        await self.profile_handler.set_sur_name(user, requester, sur_name, is_admin)
+        await self.profile_handler.set_description(user, requester, description, is_admin)
         return 200, {}
 
     def on_OPTIONS(self, request, user_id):
@@ -141,11 +166,20 @@ class ProfileRestServlet(RestServlet):
         await self.profile_handler.check_profile_query_allowed(user, requester_user)
 
         displayname = await self.profile_handler.get_displayname(user)
+        first_name = await self.profile_handler.get_first_name(user)
+        sur_name = await self.profile_handler.get_sur_name(user)
+        description = await self.profile_handler.get_description(user)
         avatar_url = await self.profile_handler.get_avatar_url(user)
 
         ret = {}
         if displayname is not None:
             ret["displayname"] = displayname
+        if first_name is not None:
+            ret["first_name"] = first_name
+        if sur_name is not None:
+            ret["sur_name"] = sur_name
+        if description is not None:
+            ret["description"] = description
         if avatar_url is not None:
             ret["avatar_url"] = avatar_url
 

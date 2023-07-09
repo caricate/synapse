@@ -102,6 +102,7 @@ CREATE INDEX local_invites_id ON local_invites(stream_id);
 CREATE INDEX local_invites_for_user_idx ON local_invites(invitee, locally_rejected, replaced_by, room_id);
 CREATE INDEX event_push_actions_stream_ordering on event_push_actions( stream_ordering, user_id );
 CREATE TABLE open_id_tokens ( token TEXT NOT NULL PRIMARY KEY, ts_valid_until_ms bigint NOT NULL, user_id TEXT NOT NULL, UNIQUE (token) );
+CREATE TABLE invites ( short_id TEXT NOT NULL PRIMARY KEY, room_id TEXT NOT NULL, ts bigint NOT NULL, UNIQUE (short_id) );
 CREATE INDEX open_id_tokens_ts_valid_until_ms ON open_id_tokens(ts_valid_until_ms);
 CREATE TABLE pusher_throttle( pusher BIGINT NOT NULL, room_id TEXT NOT NULL, last_sent_ts BIGINT, throttle_ms BIGINT, PRIMARY KEY (pusher, room_id) );
 CREATE TABLE event_reports( id BIGINT NOT NULL PRIMARY KEY, received_ts BIGINT NOT NULL, room_id TEXT NOT NULL, event_id TEXT NOT NULL, user_id TEXT NOT NULL, reason TEXT, content TEXT );

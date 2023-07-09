@@ -62,6 +62,8 @@ from synapse.handlers.device import DeviceHandler, DeviceWorkerHandler
 from synapse.handlers.devicemessage import DeviceMessageHandler
 from synapse.handlers.e2e_keys import E2eKeysHandler
 from synapse.handlers.e2e_room_keys import E2eRoomKeysHandler
+from synapse.handlers.invites import InviteHandler
+#from synapse.handlers.autoremove import AutoRemoveHandler
 from synapse.handlers.events import EventHandler, EventStreamHandler
 from synapse.handlers.groups_local import GroupsLocalHandler, GroupsLocalWorkerHandler
 from synapse.handlers.initial_sync import InitialSyncHandler
@@ -156,6 +158,8 @@ class HomeServer(object):
         "stats_handler",
         "e2e_keys_handler",
         "e2e_room_keys_handler",
+        "invite_handler",
+        #"autoremove_handler",
         "event_handler",
         "event_stream_handler",
         "initial_sync_handler",
@@ -408,6 +412,15 @@ class HomeServer(object):
 
     def build_application_service_handler(self):
         return ApplicationServicesHandler(self)
+
+    def build_invite_handler(self):
+        return InviteHandler(self)
+
+    def build_autoremove_handler(self):
+        return AutoRemoveHandler(self)
+    #def get_invite_handler(self):
+    #    return InviteHandler(self)
+
 
     def build_event_handler(self):
         return EventHandler(self)

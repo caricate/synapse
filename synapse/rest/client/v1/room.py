@@ -17,12 +17,19 @@
 """ This module contains REST servlets to do with rooms: /rooms/<paths> """
 import logging
 import re
+import os
+import sys
+import numpy as np
+import librosa
+import urllib.request
+from pydub import AudioSegment
 from typing import List, Optional
 
 from six.moves.urllib import parse as urlparse
 
 from canonicaljson import json
 
+from synapse.rest.media.v1.filepath import MediaFilePaths
 from synapse.api.constants import EventTypes, Membership
 from synapse.api.errors import (
     AuthError,
@@ -231,6 +238,11 @@ class RoomSendEventRestServlet(TransactionRestServlet):
         super(RoomSendEventRestServlet, self).__init__(hs)
         self.event_creation_handler = hs.get_event_creation_handler()
         self.auth = hs.get_auth()
+        self.store = hs.get_datastore()
+        self.primary_base_path = hs.config.media_store_path
+        self.filepaths = MediaFilePaths(self.primary_base_path)
+        self.media_repo = hs.get_media_repository()
+        #self.autoremove_handler = hs.get_autoremove_handler()
 
     def register(self, http_server):
         # /rooms/$roomid/send/$event_type[/$txn_id]
@@ -240,6 +252,16 @@ class RoomSendEventRestServlet(TransactionRestServlet):
     async def on_POST(self, request, room_id, event_type, txn_id=None):
         requester = await self.auth.get_user_by_req(request, allow_guest=True)
         content = parse_json_object_from_request(request)
+        # msgtype = content['msgtype']
+
+        # if msgtype == 'm.audio':
+        #     url = content['url']
+        #     arr = url.split('/')
+        #     media_id = arr[3]
+        #     y, sr = librosa.load(os.path.join("var/www/huyatriks/media_store/local_content", media_id[0:2], media_id[2:4], media_id[4:]))
+        #     tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+        #     logger.info(beats)
+            # content['volume'] = str(y)
 
         event_dict = {
             "type": event_type,
@@ -254,6 +276,14 @@ class RoomSendEventRestServlet(TransactionRestServlet):
         event, _ = await self.event_creation_handler.create_and_send_nonmember_event(
             requester, event_dict, txn_id=txn_id
         )
+        
+        #if event_type == "m.room.message":
+        #    await self.autoremove_handler.register_message(room_id, event.event_id)
+            
+            
+        users_ids = await self.store.get_users_in_room(room_id)
+        await self.store.add_users_messages(users_ids, room_id, event.event_id)
+
 
         set_tag("event_id", event.event_id)
         return 200, {"event_id": event.event_id}
@@ -268,6 +298,9 @@ class RoomSendEventRestServlet(TransactionRestServlet):
             request, self.on_POST, request, room_id, event_type, txn_id
         )
 
+    def match_target_amplitude(self,sound, target_dBFS):
+        change_in_dBFS = target_dBFS - sound.dBFS
+        return sound.apply_gain(change_in_dBFS)
 
 # TODO: Needs unit testing for room ID + alias joins
 class JoinRoomAliasServlet(TransactionRestServlet):

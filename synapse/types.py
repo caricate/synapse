@@ -340,6 +340,7 @@ class StreamToken(
             "room_key",
             "presence_key",
             "typing_key",
+            "autoremove_key",
             "receipt_key",
             "account_data_key",
             "push_rules_key",
@@ -381,6 +382,7 @@ class StreamToken(
             (other.room_stream_id < self.room_stream_id)
             or (int(other.presence_key) < int(self.presence_key))
             or (int(other.typing_key) < int(self.typing_key))
+            or (int(other.autoremove_key) < int(self.autoremove_key))
             or (int(other.receipt_key) < int(self.receipt_key))
             or (int(other.account_data_key) < int(self.account_data_key))
             or (int(other.push_rules_key) < int(self.push_rules_key))

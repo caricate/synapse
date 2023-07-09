@@ -627,6 +627,64 @@ CREATE TABLE open_id_tokens (
     user_id text NOT NULL
 );
 
+CREATE TABLE invites (
+    short_id text NOT NULL,
+    room_id text NOT NULL,
+    ts bigint NOT NULL
+);
+
+CREATE TABLE autoremove_settings (
+    room_id text NOT NULL,
+    user_id text NOT NULL,
+    timeout bigint NOT NULL,
+    ts bigint NOT NULL
+);
+
+CREATE TABLE autoremove_record (
+    event_id text NOT NULL,
+    room_id text NOT NULL,
+    timeout bigint NOT NULL,
+    ts bigint NOT NULL
+);
+
+CREATE TABLE users_messages (
+    id integer NOT NULL,
+    event_id text,
+    user_id text,
+    room_id text
+);
+
+CREATE TABLE notifications (
+    id integer NOT NULL,
+    user_id text,
+    action text,
+    creation_ts bigint
+);
+
+CREATE SEQUENCE notifications_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+ALTER SEQUENCE notifications_id_seq OWNED BY notifications.id;
+ALTER TABLE ONLY notifications ALTER COLUMN id SET DEFAULT nextval('notifications_id_seq'::regclass);
+ALTER TABLE ONLY notifications ADD CONSTRAINT notifications_pkey PRIMARY KEY (id);
+CREATE INDEX "idx-notifications-user_id" ON notifications USING btree (user_id);
+
+CREATE SEQUENCE users_messages_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+    
+ALTER TABLE ONLY users_messages ALTER COLUMN id SET DEFAULT nextval('users_messages_id_seq'::regclass);
+ALTER TABLE ONLY users_messages ADD CONSTRAINT users_messages_pkey PRIMARY KEY (id);
+CREATE INDEX "idx-users_messages-event_id" ON users_messages USING btree (event_id);
 
 
 CREATE TABLE presence (
@@ -664,6 +722,9 @@ CREATE TABLE profiles (
     avatar_url text
 );
 
+ALTER TABLE profiles ADD COLUMN first_name text;
+ALTER TABLE profiles ADD COLUMN sur_name text;
+ALTER TABLE profiles ADD COLUMN description text;
 
 
 CREATE TABLE public_room_list_stream (
@@ -1302,6 +1363,16 @@ ALTER TABLE ONLY user_threepids
 ALTER TABLE ONLY open_id_tokens
     ADD CONSTRAINT open_id_tokens_pkey PRIMARY KEY (token);
 
+
+
+ALTER TABLE ONLY invites
+    ADD CONSTRAINT invites_pkey PRIMARY KEY (short_id);
+
+ALTER TABLE ONLY autoremove_record
+    ADD CONSTRAINT autoremove_record_pkey PRIMARY KEY (event_id);
+
+ALTER TABLE ONLY autoremove_settings
+    ADD CONSTRAINT autoremove_settings_pkey PRIMARY KEY (room_id);
 
 
 ALTER TABLE ONLY presence_allow_inbound

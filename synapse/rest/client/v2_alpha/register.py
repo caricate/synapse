@@ -13,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import time
 import hmac
 import logging
 from typing import List, Union
@@ -604,7 +604,9 @@ class RegisterRestServlet(RestServlet):
                 auth_result=auth_result,
                 access_token=return_dict.get("access_token"),
             )
-
+            
+        await self.store.add_notification(registered_user_id, 'Регистрация', round(time.time() * 1000))
+        
         return 200, return_dict
 
     def on_OPTIONS(self, _):

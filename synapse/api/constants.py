@@ -94,6 +94,7 @@ class EventTypes(object):
     Retention = "m.room.retention"
 
     Presence = "m.presence"
+    Autoremove = "m.autoremove"
 
 
 class RejectedReason(object):

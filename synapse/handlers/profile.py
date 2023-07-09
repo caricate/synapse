@@ -140,10 +140,95 @@ class BaseProfileHandler(BaseHandler):
                 raise e.to_synapse_error()
 
             return result["displayname"]
+    @defer.inlineCallbacks
+    def get_first_name(self, target_user):
+        if self.hs.is_mine(target_user):
+            try:
+                first_name = yield self.store.get_profile_first_name(
+                    target_user.localpart
+                )
+            except StoreError as e:
+                if e.code == 404:
+                    raise SynapseError(404, "Profile was not found", Codes.NOT_FOUND)
+                raise
 
-    async def set_displayname(
-        self, target_user, requester, new_displayname, by_admin=False
-    ):
+            return first_name
+        else:
+            try:
+                result = yield self.federation.make_query(
+                    destination=target_user.domain,
+                    query_type="profile",
+                    args={"user_id": target_user.to_string(), "field": "first_name"},
+                    ignore_backoff=True,
+                )
+            except RequestSendFailed as e:
+                raise_from(SynapseError(502, "Failed to fetch profile"), e)
+            except HttpResponseException as e:
+                raise e.to_synapse_error()
+
+            return result["first_name"]
+
+    @defer.inlineCallbacks
+    def get_sur_name(self, target_user):
+        if self.hs.is_mine(target_user):
+            try:
+                sur_name = yield self.store.get_profile_sur_name(
+                    target_user.localpart
+                )
+            except StoreError as e:
+                if e.code == 404:
+                   raise SynapseError(404, "Profile was not found", Codes.NOT_FOUND)
+                raise
+
+            return sur_name
+        else:
+            try:
+                result = yield self.federation.make_query(
+                    destination=target_user.domain,
+                    query_type="profile",
+                    args={"user_id": target_user.to_string(), "field": "sur_name"},
+                    ignore_backoff=True,
+                )
+            except RequestSendFailed as e:
+                raise_from(SynapseError(502, "Failed to fetch profile"), e)
+            except HttpResponseException as e:
+                raise e.to_synapse_error()
+
+            return result["sur_name"]
+
+    @defer.inlineCallbacks
+    def get_description(self, target_user):
+        if self.hs.is_mine(target_user):
+            try:
+                description = yield self.store.get_profile_description(
+                    target_user.localpart
+                )
+            except StoreError as e:
+                if e.code == 404:
+                    raise SynapseError(404, "Profile was not found", Codes.NOT_FOUND)
+                raise
+
+            return description
+        else:
+            try:
+                result = yield self.federation.make_query(
+                    destination=target_user.domain,
+                    query_type="profile",
+                    args={"user_id": target_user.to_string(), "field": "description"},
+                    ignore_backoff=True,
+                )
+            except RequestSendFailed as e:
+                raise_from(SynapseError(502, "Failed to fetch profile"), e)
+            except HttpResponseException as e:
+                raise e.to_synapse_error()
+
+            return result["description"]
+
+    @defer.inlineCallbacks
+    def set_displayname(self, target_user, requester, new_displayname, by_admin=False):
+#    async def set_displayname(
+#        self, target_user, requester, new_displayname, by_admin=False
+#    ):
         """Set the displayname of a user
 
         Args:
@@ -158,14 +243,14 @@ class BaseProfileHandler(BaseHandler):
         if not by_admin and target_user != requester.user:
             raise AuthError(400, "Cannot set another user's displayname")
 
-        if not by_admin and not self.hs.config.enable_set_displayname:
-            profile = await self.store.get_profileinfo(target_user.localpart)
-            if profile.display_name:
-                raise SynapseError(
-                    400,
-                    "Changing display name is disabled on this server",
-                    Codes.FORBIDDEN,
-                )
+#        if not by_admin and not self.hs.config.enable_set_displayname:
+#            profile = await self.store.get_profileinfo(target_user.localpart)
+#            if profile.display_name:
+#                raise SynapseError(
+#                    400,
+#                    "Changing display name is disabled on this server",
+#                    Codes.FORBIDDEN,
+#                )
 
         if len(new_displayname) > MAX_DISPLAYNAME_LEN:
             raise SynapseError(
@@ -181,15 +266,133 @@ class BaseProfileHandler(BaseHandler):
         if by_admin:
             requester = create_requester(target_user)
 
-        await self.store.set_profile_displayname(target_user.localpart, new_displayname)
+        yield self.store.set_profile_displayname(target_user.localpart, new_displayname)
 
         if self.hs.config.user_directory_search_all_users:
-            profile = await self.store.get_profileinfo(target_user.localpart)
-            await self.user_directory_handler.handle_local_profile_change(
+            profile = yield self.store.get_profileinfo(target_user.localpart)
+            yield self.user_directory_handler.handle_local_profile_change(
                 target_user.to_string(), profile
             )
 
-        await self._update_join_states(requester, target_user)
+        yield self._update_join_states(requester, target_user)
+
+    @defer.inlineCallbacks
+    def set_first_name(self, target_user, requester, first_name, by_admin=False):
+        """Set the first_name of a user
+
+        Args:
+            target_user (UserID): the user whose first_name is to be changed.
+            requester (Requester): The user attempting to make this change.
+            first_name (str): The first_name to give this user.
+            by_admin (bool): Whether this change was made by an administrator.
+        """
+        if not self.hs.is_mine(target_user):
+            raise SynapseError(400, "User is not hosted on this homeserver")
+
+        if not by_admin and target_user != requester.user:
+            raise AuthError(400, "Cannot set another user's first_name")
+
+        if len(first_name) > MAX_DISPLAYNAME_LEN:
+            raise SynapseError(
+                400, "first_name is too long (max %i)" % (MAX_DISPLAYNAME_LEN,)
+            )
+
+        if first_name == "":
+            first_name = None
+
+        # If the admin changes the display name of a user, the requesting user cannot send
+        # the join event to update the displayname in the rooms.
+        # This must be done by the target user himself.
+        if by_admin:
+            requester = create_requester(target_user)
+
+        yield self.store.set_profile_first_name(target_user.localpart, first_name)
+
+        if self.hs.config.user_directory_search_all_users:
+            profile = yield self.store.get_profileinfo(target_user.localpart)
+            yield self.user_directory_handler.handle_local_profile_change(
+                target_user.to_string(), profile
+            )
+
+        yield self._update_join_states(requester, target_user)
+
+    @defer.inlineCallbacks
+    def set_sur_name(self, target_user, requester, sur_name, by_admin=False):
+        """Set the sur_name of a user
+
+        Args:
+            target_user (UserID): the user whose sur_name is to be changed.
+            requester (Requester): The user attempting to make this change.
+            sur_name (str): The sur_name to give this user.
+            by_admin (bool): Whether this change was made by an administrator.
+        """
+        if not self.hs.is_mine(target_user):
+            raise SynapseError(400, "User is not hosted on this homeserver")
+
+        if not by_admin and target_user != requester.user:
+            raise AuthError(400, "Cannot set another user's sur_name")
+
+        if len(sur_name) > MAX_DISPLAYNAME_LEN:
+            raise SynapseError(
+                400, "sur_name is too long (max %i)" % (MAX_DISPLAYNAME_LEN,)
+            )
+
+            if sur_name == "":
+                sur_name = None
+        # If the admin changes the display name of a user, the requesting user cannot send
+        # the join event to update the displayname in the rooms.
+        # This must be done by the target user himself.
+        if by_admin:
+            requester = create_requester(target_user)
+
+        yield self.store.set_profile_sur_name(target_user.localpart, sur_name)
+
+        if self.hs.config.user_directory_search_all_users:
+            profile = yield self.store.get_profileinfo(target_user.localpart)
+            yield self.user_directory_handler.handle_local_profile_change(
+                target_user.to_string(), profile
+            )
+
+        yield self._update_join_states(requester, target_user)
+
+    @defer.inlineCallbacks
+    def set_description(self, target_user, requester, description, by_admin=False):
+        """Set the sur_name of a user
+
+        Args:
+            target_user (UserID): the user whose sur_name is to be changed.
+            requester (Requester): The user attempting to make this change.
+            description (str): The sur_name to give this user.
+            by_admin (bool): Whether this change was made by an administrator.
+        """
+        if not self.hs.is_mine(target_user):
+            raise SynapseError(400, "User is not hosted on this homeserver")
+
+        if not by_admin and target_user != requester.user:
+            raise AuthError(400, "Cannot set another user's description")
+
+        if len(description) > MAX_DISPLAYNAME_LEN:
+            raise SynapseError(
+                400, "description is too long (max %i)" % (MAX_DISPLAYNAME_LEN,)
+            )
+
+            if description == "":
+                description = None
+        # If the admin changes the display name of a user, the requesting user cannot send
+        # the join event to update the displayname in the rooms.
+        # This must be done by the target user himself.
+        if by_admin:
+            requester = create_requester(target_user)
+
+        yield self.store.set_profile_description(target_user.localpart, description)
+
+        if self.hs.config.user_directory_search_all_users:
+            profile = yield self.store.get_profileinfo(target_user.localpart)
+            yield self.user_directory_handler.handle_local_profile_change(
+                target_user.to_string(), profile
+            )
+
+        yield self._update_join_states(requester, target_user)        
 
     @defer.inlineCallbacks
     def get_avatar_url(self, target_user):
@@ -218,9 +421,11 @@ class BaseProfileHandler(BaseHandler):
 
             return result["avatar_url"]
 
-    async def set_avatar_url(
-        self, target_user, requester, new_avatar_url, by_admin=False
-    ):
+    @defer.inlineCallbacks
+    def set_avatar_url(self, target_user, requester, new_avatar_url, by_admin=False):
+    #async def set_avatar_url(
+    #    self, target_user, requester, new_avatar_url, by_admin=False
+    #):
         """target_user is the user whose avatar_url is to be changed;
         auth_user is the user attempting to make this change."""
         if not self.hs.is_mine(target_user):
@@ -229,12 +434,12 @@ class BaseProfileHandler(BaseHandler):
         if not by_admin and target_user != requester.user:
             raise AuthError(400, "Cannot set another user's avatar_url")
 
-        if not by_admin and not self.hs.config.enable_set_avatar_url:
-            profile = await self.store.get_profileinfo(target_user.localpart)
-            if profile.avatar_url:
-                raise SynapseError(
-                    400, "Changing avatar is disabled on this server", Codes.FORBIDDEN
-                )
+#        if not by_admin and not self.hs.config.enable_set_avatar_url:
+#            profile = await self.store.get_profileinfo(target_user.localpart)
+#            if profile.avatar_url:
+#                raise SynapseError(
+#                    400, "Changing avatar is disabled on this server", Codes.FORBIDDEN
+#                )
 
         if len(new_avatar_url) > MAX_AVATAR_URL_LEN:
             raise SynapseError(
@@ -245,15 +450,15 @@ class BaseProfileHandler(BaseHandler):
         if by_admin:
             requester = create_requester(target_user)
 
-        await self.store.set_profile_avatar_url(target_user.localpart, new_avatar_url)
+        yield self.store.set_profile_avatar_url(target_user.localpart, new_avatar_url)
 
         if self.hs.config.user_directory_search_all_users:
-            profile = await self.store.get_profileinfo(target_user.localpart)
-            await self.user_directory_handler.handle_local_profile_change(
+            profile = yield self.store.get_profileinfo(target_user.localpart)
+            yield self.user_directory_handler.handle_local_profile_change(
                 target_user.to_string(), profile
             )
 
-        await self._update_join_states(requester, target_user)
+        yield self._update_join_states(requester, target_user)
 
     @defer.inlineCallbacks
     def on_profile_query(self, args):
@@ -281,20 +486,22 @@ class BaseProfileHandler(BaseHandler):
 
         return response
 
-    async def _update_join_states(self, requester, target_user):
+    @defer.inlineCallbacks
+    def _update_join_states(self, requester, target_user):
+    #async def _update_join_states(self, requester, target_user):
         if not self.hs.is_mine(target_user):
             return
 
-        await self.ratelimit(requester)
+        yield self.ratelimit(requester)
 
-        room_ids = await self.store.get_rooms_for_user(target_user.to_string())
+        room_ids = yield self.store.get_rooms_for_user(target_user.to_string())
 
         for room_id in room_ids:
             handler = self.hs.get_room_member_handler()
             try:
                 # Assume the target_user isn't a guest,
                 # because we don't let guests set profile or avatar data.
-                await handler.update_membership(
+                yield handler.update_membership(
                     requester,
                     target_user,
                     room_id,

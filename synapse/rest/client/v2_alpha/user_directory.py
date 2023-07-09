@@ -55,6 +55,10 @@ class UserDirectorySearchRestServlet(RestServlet):
         """
         requester = await self.auth.get_user_by_req(request, allow_guest=False)
         user_id = requester.user.to_string()
+        #todo ДОБАВИЛ ВОТ ЭТИ ДВЕ СТРОКИ
+        user_id = user_id.split(":")
+        user_id = user_id[0].replace("@","")
+
 
         if not self.hs.config.user_directory_search_enabled:
             return 200, {"limited": False, "results": []}

@@ -19,6 +19,8 @@ from synapse.api.errors import SynapseError
 from synapse.http.servlet import RestServlet
 
 from ._base import client_patterns
+import synapse.types
+from synapse.types import UserID
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,8 @@ class ReceiptRestServlet(RestServlet):
         self.auth = hs.get_auth()
         self.receipts_handler = hs.get_receipts_handler()
         self.presence_handler = hs.get_presence_handler()
+        self.store = hs.get_datastore()
+        self.event_handler = hs.get_event_handler()
 
     async def on_POST(self, request, room_id, receipt_type, event_id):
         requester = await self.auth.get_user_by_req(request)
@@ -50,6 +54,48 @@ class ReceiptRestServlet(RestServlet):
         )
 
         return 200, {}
+
+    async def on_GET(self, request, room_id, receipt_type, event_id):
+        """requester = await self.auth.get_user_by_req(request, allow_guest=True)
+        is_guest = requester.is_guest
+        room_id = None
+        short_id = None
+        if b"room_id" not in request.args and b"short_id" not in request.args:
+            raise SynapseError(400, "Users must specify room_id or short_id param")
+        if b"room_id" in request.args:
+            room_id = request.args[b"room_id"][0].decode("ascii")
+        if b"short_id" in request.args:
+            short_id = request.args[b"short_id"][0].decode("ascii")
+
+        chunk = {}
+        if room_id:
+            chunk = await self.invite_handler.get_invite_link(
+                requester.user.to_string(),            
+                affect_presence=(not is_guest),
+                room_id=room_id,
+            )
+        if short_id:
+            chunk = await self.invite_handler.decode_invite_link(
+                requester.user.to_string(),            
+                affect_presence=(not is_guest),
+                short_id=short_id,
+            )"""
+        
+        receipts = await self.store.get_receipts_for_room(room_id, receipt_type)
+        requester = await self.auth.get_user_by_req(request)
+        
+        user_id = None;
+        if b"user_id" in request.args:
+            user_id = request.args[b"user_id"][0].decode("ascii")
+            
+        ts = 0
+        event = None
+        for r in receipts: 
+            if user_id is None or user_id and r["user_id"] == user_id:
+                event = await self.event_handler.get_event(requester.user, None, r["event_id"])
+                ts = max(ts, event["origin_server_ts"]);
+
+        return 200, {"origin_server_ts" : ts}
 
 
 def register_servlets(hs, http_server):
