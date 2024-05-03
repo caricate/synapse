@@ -88,7 +88,7 @@ class Thumbnailer(object):
         # looks awful
         if self.image.mode in ["1", "P"]:
             self.image = self.image.convert("RGB")
-        return self.image.resize((width, height), Image.ANTIALIAS)
+        return self.image.resize((width, height), Image.LANCZOS)
 
     def scale(self, width, height, output_type):
         """Rescales the image to the given dimensions.

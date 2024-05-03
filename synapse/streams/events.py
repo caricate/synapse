@@ -22,7 +22,7 @@ from synapse.handlers.presence import PresenceEventSource
 from synapse.handlers.receipts import ReceiptEventSource
 from synapse.handlers.room import RoomEventSource
 from synapse.handlers.typing import TypingNotificationEventSource
-#from synapse.handlers.autoremove import AutoremoveNotificationEventSource
+from synapse.handlers.autoremove import AutoremoveNotificationEventSource
 from synapse.types import StreamToken
 
 
@@ -31,7 +31,7 @@ class EventSources(object):
         "room": RoomEventSource,
         "presence": PresenceEventSource,
         "typing": TypingNotificationEventSource,
-        #"autoremove": AutoremoveNotificationEventSource,
+        "autoremove": AutoremoveNotificationEventSource,
         "receipt": ReceiptEventSource,
         "account_data": AccountDataEventSource,
     }
@@ -53,7 +53,7 @@ class EventSources(object):
             room_key=(yield self.sources["room"].get_current_key()),
             presence_key=(yield self.sources["presence"].get_current_key()),
             typing_key=(yield self.sources["typing"].get_current_key()),
-            #autoremove_key=(yield self.sources["autoremove"].get_current_key()),
+            autoremove_key=(yield self.sources["autoremove"].get_current_key()),
             receipt_key=(yield self.sources["receipt"].get_current_key()),
             account_data_key=(yield self.sources["account_data"].get_current_key()),
             push_rules_key=push_rules_key,
@@ -78,7 +78,7 @@ class EventSources(object):
             room_key=(yield self.sources["room"].get_current_key()),
             presence_key=0,
             typing_key=0,
-            #autoremove_key=0,
+            autoremove_key=0,
             receipt_key=0,
             account_data_key=0,
             push_rules_key=0,
